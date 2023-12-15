@@ -11,7 +11,7 @@ def get_sensor_data(lookback):
     # variables
     bucket = "random"
     org = "Empati Limited"
-    token = secret.api_key
+    token = secret.influx_api_key
     # Store the URL of your InfluxDB instance
     url="https://eu-central-1-1.aws.cloud2.influxdata.com/"
 
