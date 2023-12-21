@@ -13,7 +13,9 @@ import requests
 '''
 A function to get the irradiance data from local file if it exists, otherwise get it from the api and save it
 '''
-def api_irradiance_data(lat, lon, date_time, interval='15m'):
+def api_irradiance_data(postcode, date_time, interval='15m'):
+    # get the lat long from the postcode
+    lat, lon = get_lat_long(postcode)
     # get the data from the API
     date_string = date_time.strftime('%Y-%m-%d')
     url = f"https://api.openweathermap.org/energy/1.0/solar/interval_data?lat={lat}&lon={lon}&date={date_string}&interval={interval}&appid={secret.openweathermap_api_key}"
@@ -34,7 +36,8 @@ def api_irradiance_data(lat, lon, date_time, interval='15m'):
 '''
 A function to see if the data is available locally, if not get it from the api
 '''
-def irradiance_data(lat, lon, date_time, interval='15m'):
+def irradiance_data(postcode, date_time, interval='15m'):
+    lat, lon = get_lat_long(postcode)
     date_string = date_time.strftime('%Y-%m-%d')
     location = "data/irradiance/"
     name = f"irradiance_{lat}_{lon}_{date_string}.csv"
@@ -46,3 +49,14 @@ def irradiance_data(lat, lon, date_time, interval='15m'):
     except:
         print('No local data available, calling API')
         return api_irradiance_data(lat, lon, date_time, interval)
+    
+'''
+function to get the lat long from the postcode
+'''
+def get_lat_long(postcode):
+    url = f'https://api.postcodes.io/postcodes/{postcode}'
+    response = requests.get(url)
+    postcode_data = response.json()
+    lat = postcode_data['result']['latitude']
+    lon = postcode_data['result']['longitude']
+    return lat, lon
