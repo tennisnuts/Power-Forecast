@@ -9,6 +9,7 @@ import secret
 import pandas as pd
 from datetime import datetime
 import requests
+import ast
 
 '''
 A function to get the irradiance data from local file if it exists, otherwise get it from the api and save it
@@ -25,6 +26,18 @@ def api_irradiance_data(postcode, date_time, interval='15m'):
     # put the data into a dataframe
     irradiance_df = pd.DataFrame(irradiance_data['irradiance']['intervals'])
     irradiance_df['start_time'] = pd.to_datetime(date_string + ' ' + irradiance_df['start'])
+
+    # convert the dictionary items to columns
+    # Convert string representations to dictionaries (this is not needed when using the api)
+    # irradiance_df['clear_sky'] = irradiance_df['clear_sky'].apply(ast.literal_eval)
+    # irradiance_df['cloudy_sky'] = irradiance_df['cloudy_sky'].apply(ast.literal_eval)
+
+    # get the ghi, dni and dhi data from irradiance
+    irradiance_df[['clear_sky_ghi', 'clear_sky_dni', 'clear_sky_dhi']] = irradiance_df['clear_sky'].apply(lambda x: pd.Series([x['ghi'], x['dni'], x['dhi']]))
+    irradiance_df[['cloudy_sky_ghi', 'cloudy_sky_dni', 'cloudy_sky_dhi']] = irradiance_df['cloudy_sky'].apply(lambda x: pd.Series([x['ghi'], x['dni'], x['dhi']]))
+
+    # drop the columns we don't need
+    irradiance_df = irradiance_df.drop(columns=['clear_sky', 'cloudy_sky'])
 
     # save the data to a csv file for future use (so we don't have to keep calling the api)
     location = "data/irradiance/"

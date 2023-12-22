@@ -129,5 +129,10 @@ def get_sensor_data(date_time):
         print('Data not found in local storage, querying influxdb')
         generation_df, consumption_df = get_influx_data(date_time)
 
+    # code to overwrite if the date is today so that we get the most up to date data
+    if date_time.date() == pd.Timestamp.now().date():
+        print('Date is today, querying influxdb to get up to date data')
+        generation_df, consumption_df = get_influx_data(date_time)
+
     return generation_df, consumption_df
 
