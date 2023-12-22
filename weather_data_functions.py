@@ -48,6 +48,41 @@ def get_historical_weather(postcode, date_time):
         df['condition'] = condition_data['text']
         # Setting 'last_updated' as the index
         df.set_index('time', inplace=True)
+        # convert index to datetime
+        df.index = pd.to_datetime(df.index)
         # append to weather_df
         weather_df = pd.concat([weather_df, df])
+
+    # determine the file location to save the data
+    location = "data/weather/"
+    name = f"weather_{postcode}_{date_string}.csv"
+    weather_df.to_csv(location + name)
+
+    return weather_df
+
+'''
+function to get weather data locally first, then from API if not available
+'''
+def get_weather_data(postcode, date_time):
+
+    # convert date to string for file naming
+    date_string = date_time.strftime("%Y-%m-%d")
+
+    # set file location and name
+    location = 'data/weather/'
+    name = f"weather_{postcode}_{date_string}.csv"
+
+    # try to read data from file
+    try:
+        weather_df = pd.read_csv(location + name, index_col=0)
+        # convert index to datetime
+        weather_df.index = pd.to_datetime(weather_df.index)
+        print('Weather data loaded from file')
+    except:
+        # get weather data from API
+        weather_df = get_historical_weather(postcode, date_time)
+        # save data to file
+        weather_df.to_csv(location + name)
+        print('Weather data loaded from API')
+    
     return weather_df

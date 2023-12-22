@@ -6,9 +6,19 @@ python script to define functions for data analysis
 import influxdb_client
 import pandas as pd
 import secret
+import math
+import pytz
 
-def get_sensor_data(lookback):
-    # variables
+def get_influx_data(date_time):
+
+    # determine the datetimes to query between
+    start_dt = date_time
+    end_dt = start_dt + pd.Timedelta(days=1)
+
+    # work out the start and end lookback times from datetime
+    start_lookback = math.floor((pd.Timestamp.now() - start_dt).total_seconds() / 60 + 1)
+    end_lookback = math.ceil((pd.Timestamp.now() - end_dt).total_seconds() / 60 - 1)
+
     bucket = "random"
     org = "Empati Limited"
     token = secret.influx_api_key
@@ -27,7 +37,7 @@ def get_sensor_data(lookback):
 
     # query written in InfluxQL
     query = f'from(bucket:"random")\
-    |> range(start: -{lookback})\
+    |> range(start: -{start_lookback}m, stop: -{end_lookback}m)\
     |> filter(fn:(r) => r._measurement == "Power")\
     |> filter(fn:(r) => r._field == "value")'
 
@@ -58,5 +68,66 @@ def get_sensor_data(lookback):
     new_df = new_df.set_index('datetime')
     new_df = new_df.drop(columns=['time'])
 
+    # make the start and end datetimes timezone aware
+    start_dt = pytz.utc.localize(start_dt)
+    end_dt = pytz.utc.localize(end_dt)
+    end_dt = end_dt - pd.Timedelta(seconds=1)
+
+    # filter the dataframes to the start and end datetimes
+    if len(old_df) > 0:
+        old_df = old_df[start_dt:end_dt]
+    if len(new_df) > 0:
+        new_df = new_df[start_dt:end_dt]
+
+    # determine the file locations for the dataframes
+    consumption_location = "data/consumption/"
+    generation_location = "data/generation/"
+
+    # convert datetime to string for saving
+    date_string = date_time.strftime('%Y-%m-%d')
+
+    # save the dataframes to csv
+    consumption_name = f"consumption_{date_string}.csv"
+    generation_name = f"generation_{date_string}.csv"
+    old_df.to_csv(generation_location + generation_name)
+    new_df.to_csv(consumption_location + consumption_name)
+
     return old_df, new_df
+
+def get_sensor_data(date_time):
+    
+    # determine the datetimes to query between
+    start_dt = date_time
+    end_dt = start_dt + pd.Timedelta(days=1)
+
+    # work out the start and end lookback times from datetime
+    start_lookback = math.floor((pd.Timestamp.now() - start_dt).total_seconds() / 60 + 1)
+    end_lookback = math.ceil((pd.Timestamp.now() - end_dt).total_seconds() / 60 - 1)
+
+    # determine the file locations for the dataframes
+    consumption_location = "data/consumption/"
+    generation_location = "data/generation/"
+
+    # convert datetime to string for saving
+    date_string = date_time.strftime('%Y-%m-%d')
+
+    # determine the file names
+    consumption_name = f"consumption_{date_string}.csv"
+    generation_name = f"generation_{date_string}.csv"
+
+    # try to load the dataframes from local storage
+    try:
+        consumption_df = pd.read_csv(consumption_location + consumption_name)
+        generation_df = pd.read_csv(generation_location + generation_name)
+        consumption_df['datetime'] = pd.to_datetime(consumption_df['datetime'])
+        consumption_df = consumption_df.set_index('datetime')
+        generation_df['datetime'] = pd.to_datetime(generation_df['datetime'])
+        generation_df = generation_df.set_index('datetime')
+        print('Data loaded from local storage')
+    except:
+        # if the dataframes don't exist then query influxdb
+        print('Data not found in local storage, querying influxdb')
+        generation_df, consumption_df = get_influx_data(date_time)
+
+    return generation_df, consumption_df
 

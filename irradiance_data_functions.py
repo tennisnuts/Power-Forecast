@@ -28,7 +28,7 @@ def api_irradiance_data(postcode, date_time, interval='15m'):
 
     # save the data to a csv file for future use (so we don't have to keep calling the api)
     location = "data/irradiance/"
-    name = f"irradiance_{lat}_{lon}_{date_string}.csv"
+    name = f"irradiance_{postcode}_{date_string}.csv"
     irradiance_df.to_csv(location + name)
 
     return irradiance_df
@@ -40,7 +40,7 @@ def irradiance_data(postcode, date_time, interval='15m'):
     lat, lon = get_lat_long(postcode)
     date_string = date_time.strftime('%Y-%m-%d')
     location = "data/irradiance/"
-    name = f"irradiance_{lat}_{lon}_{date_string}.csv"
+    name = f"irradiance_{postcode}_{date_string}.csv"
     try:
         irradiance_df = pd.read_csv(location + name, index_col=0)
         irradiance_df['start_time'] = pd.to_datetime(irradiance_df['start_time'])
@@ -48,7 +48,7 @@ def irradiance_data(postcode, date_time, interval='15m'):
         return irradiance_df
     except:
         print('No local data available, calling API')
-        return api_irradiance_data(lat, lon, date_time, interval)
+        return api_irradiance_data(postcode, date_time, interval)
     
 '''
 function to get the lat long from the postcode
