@@ -1,8 +1,5 @@
 # environments
 .venv
 
-# data
-data/
-
 # api token
 secret.py
